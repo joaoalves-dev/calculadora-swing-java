@@ -14,6 +14,7 @@ public class Memoria {
 	private final List<MemoriaObservador> observadores = new ArrayList<MemoriaObservador>();
 	
 	private TipoComando ultimaOperacao = null; 
+	private TipoComando operacaoAnterior = null; 
 	private boolean substituir = false;
 	private String textoAtual = "";
 	private String textoBuffer = "";
@@ -45,6 +46,7 @@ public class Memoria {
 			textoBuffer = "";
 			substituir = false;
 			ultimaOperacao = null;
+			operacaoAnterior = null;
 		}else if(tipoComando == TipoComando.SINAL && textoAtual.contains("-")){
 			
 			textoAtual = textoAtual.substring(1);
@@ -56,11 +58,15 @@ public class Memoria {
 		}else if(tipoComando == TipoComando.NUMERO || tipoComando == TipoComando.VIRGULA) {
 			textoAtual = substituir ? texto : textoAtual + texto;
 			substituir = false;
-		}else {
-			substituir = true;
-			textoAtual = receberResultadoOperacao();			
-			textoBuffer = textoAtual; 
-			ultimaOperacao = tipoComando;
+		}else{
+			substituir = true;	
+			if(tipoComando != TipoComando.PORCENTAGEM){
+				textoAtual = receberResultadoOperacao();
+				textoBuffer = textoAtual; 
+			}
+			
+			operacaoAnterior = ultimaOperacao;
+			ultimaOperacao = tipoComando;			
 		}
 			
 		observadores.forEach(o -> o.valorAlterado(getTextoAtual()));
@@ -75,8 +81,7 @@ public class Memoria {
 		double numeroBuffer = Double.parseDouble(textoBuffer.replace(",", "."));
 		double numeroAtual = Double.parseDouble(textoAtual.replace(",", "."));
 		double resultado = 0;
-				
-				
+						
 		if(ultimaOperacao == TipoComando.SOMA) {
 			resultado = numeroBuffer + numeroAtual;
 		}else if(ultimaOperacao == TipoComando.SUB) {
@@ -85,6 +90,9 @@ public class Memoria {
 			resultado = numeroBuffer * numeroAtual;
 		}else if(ultimaOperacao == TipoComando.DIVISAO) {
 			resultado = numeroBuffer / numeroAtual;
+		}else if(ultimaOperacao == TipoComando.PORCENTAGEM && operacaoAnterior == TipoComando.SOMA) {			
+			double tempPorcentagem = (numeroBuffer / 100) * numeroAtual;
+			resultado = numeroBuffer + tempPorcentagem;
 		}
 		
 		String resultadoString = Double.toString(resultado).replace(".", ",");
@@ -123,10 +131,6 @@ public class Memoria {
 				return TipoComando.PORCENTAGEM;
 			}
 		}
-		
 		return null;
 	}
-	
-	
-	
 }
